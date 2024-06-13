@@ -1,4 +1,4 @@
-package fileService
+package filesystem
 
 import (
 	"fmt"
@@ -20,69 +20,90 @@ type FileDirectives struct {
 
 func Open(fileName string, pathDir string) (*os.File, error) {
 	fullPathFile := path.Join(pathDir, fileName)
-	f, err := os.Create(fullPathFile)
+	file, err := os.Create(fullPathFile)
 
 	if err != nil {
-		return f, err
+		err = fmt.Errorf("failed to open file %s: %w", fileName, err)
 	}
 
-	return f, err
+	return file, err
 }
 
-func Write(text string, file *os.File) {
+func Write(file *os.File, text string) error {
 	data := []byte(text)
 	var content []byte
 
-	if IsEmpty(file) {
+	isEmpty, _ := IsEmpty(file)
+
+	if isEmpty {
 		content = data
 	} else {
-		content = append([]byte("\n"), data...)
+		content = append([]byte(""), data...)
 	}
 
 	_, err := file.Write(content)
 
 	if err != nil {
-		return
+		err = fmt.Errorf("failed to write file %s: %w", file.Name(), err)
+		return err
 	}
+
+	return err
 }
 
-func Read(filePath string) string {
-	data, _ := os.ReadFile(filePath)
-	return string(data)
-}
-
-func IsEmpty(file *os.File) bool {
-	fileInfo, err := file.Stat()
-
+func Read(filePath string) (string, error) {
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return false
+		err = fmt.Errorf("failed to read file with path %s: %w", filePath, err)
 	}
-
-	return fileInfo.Size() == 0
+	return string(data), err
 }
 
-func Close(file *os.File) {
-	file.Close()
+func IsEmpty(file *os.File) (bool, error) {
+	fileInfo, err := file.Stat()
+	if err != nil {
+		err = fmt.Errorf("failed to check file info %s: %w", file.Name(), err)
+	}
+	return fileInfo.Size() == 0, err
+}
+
+func Close(file *os.File) error {
+	err := file.Close()
+	if err != nil {
+		err = fmt.Errorf("failed to close file %s: %w", file.Name(), err)
+	}
+	return err
 }
 
 func Exists(filename string) bool {
+	exists := true
 	_, err := os.Stat(filename)
-	return !os.IsNotExist(err)
-}
-
-func Remove(fileName string) {
-	err := os.Remove(fileName)
-
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		exists = false
 	}
+
+	return exists
 }
 
-func AddDirective(dockerFile *os.File, directive FileDirectives) {
+func Remove(fileName string) error {
+	err := os.Remove(fileName)
+	if err != nil {
+		err = fmt.Errorf("failed to remove file %s: %w", fileName, err)
+	}
+	return err
+}
+
+func AddDirective(file *os.File, directive FileDirectives) {
+	newLine := true
+
 	indent := getIndent(directive.Indent)
 	content := indent + directive.Content
-	Write(content, dockerFile)
+
+	if newLine {
+		content = content + "\n"
+	}
+
+	Write(file, content)
 }
 
 //
