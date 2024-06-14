@@ -10,12 +10,13 @@ import (
 type FileInfo struct {
 	Name       string
 	Path       string
-	Directives []FileDirectives
+	Directives []FileDirective
 }
 
-type FileDirectives struct {
+type FileDirective struct {
 	Content string
 	Indent  int
+	NewLine bool
 }
 
 func Open(fileName string, pathDir string) (*os.File, error) {
@@ -93,17 +94,54 @@ func Remove(fileName string) error {
 	return err
 }
 
-func AddDirective(file *os.File, directive FileDirectives) {
-	newLine := true
-
+func AddDirective(file *os.File, directive FileDirective, isLast bool) error {
 	indent := getIndent(directive.Indent)
 	content := indent + directive.Content
 
-	if newLine {
-		content = content + "\n"
+	if !isLast {
+		content += "\n"
 	}
 
-	Write(file, content)
+	if directive.NewLine {
+		content = "\n" + content
+	}
+
+	if err := Write(file, content); err != nil {
+		return fmt.Errorf("failed to add directive %s: %w", directive.Content, err)
+	}
+
+	return nil
+}
+
+func AddDirectives(file *os.File, directives []FileDirective) error {
+	for i, directive := range directives {
+		isLast := len(directives) == (i + 1)
+		if err := AddDirective(file, directive, isLast); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func BuildFile(fileInfo FileInfo, closeFile bool) (*os.File, error) {
+	file, err := Open(fileInfo.Name, fileInfo.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = AddDirectives(file, fileInfo.Directives); err != nil {
+		return nil, err
+	}
+
+	if closeFile {
+		if err = Close(file); err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
+
+	return file, nil
 }
 
 //
