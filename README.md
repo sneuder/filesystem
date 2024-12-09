@@ -9,8 +9,7 @@ To install the package, use the following command:
 ```bash
 go get github.com/yourusername/filesystem@<version>
 ```
-Replace <version> with:
-- v1.0.0
+Replace <version> with your prefered version.
 
 
 ## Usage
@@ -165,3 +164,93 @@ func main() {
 
 	log.Println("Directives added successfully.")
 }
+```
+
+## JSON Files
+
+### Create JSON File
+
+```go
+type TestData struct {
+    Name  string `json:"name"`
+    Value int    `json:"value"`
+}
+
+func main() {
+    data := TestData{Name: "example", Value: 42}
+    path := "/path/to/directory"
+    fileName := "test_file"
+
+    err := filesystem.CreateJSONFile(data, path, fileName)
+    if err != nil {
+        log.Fatalf("Error creating JSON file: %v", err)
+    }
+
+    log.Println("JSON file created successfully.")
+}
+```
+
+### Read JSON File
+
+```go
+type TestData struct {
+    Name  string `json:"name"`
+    Value int    `json:"value"`
+}
+
+func main() {
+    path := "/path/to/directory"
+    fileName := "test_file"
+
+    var data TestData
+    err := filesystem.ReadJSONFile(path, fileName, &data)
+    if err != nil {
+        log.Fatalf("Error reading JSON file: %v", err)
+    }
+
+    log.Printf("Read data: Name = %s, Value = %d", data.Name, data.Value)
+}
+```
+
+### Check JSON File
+
+```go
+func main() {
+    path := "/path/to/directory"
+    fileName := "test_file"
+
+    exists := filesystem.CheckJSONFile(path, fileName)
+    if exists {
+        log.Printf("File %s exists.", fileName)
+    } else {
+        log.Printf("File %s does not exist.", fileName)
+    }
+}
+```
+
+### Remove JSON File
+
+```go
+func main() {
+    path := "/path/to/directory"
+    fileName := "test_file"
+
+    removed := filesystem.RemoveJSONFile(fileName, path)
+    if removed {
+        log.Println("JSON file removed successfully.")
+    } else {
+        log.Println("Failed to remove JSON file.")
+    }
+}
+```
+
+### Add JSON File Extension
+
+```go
+func main() {
+    fileName := "test_file"
+    fullFileName := filesystem.AddJSONExtension(fileName)
+    
+    log.Printf("Full file name: %s", fullFileName)
+}
+```
